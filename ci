@@ -1,0 +1,33 @@
+#!/bin/bash
+
+check_ping() {
+    ping -c 1 -W 1 "$1" >/dev/null 2>&1 && echo "success" || echo "fail"
+}
+
+# 使用临时文件存储结果
+tmpdir=$(mktemp -d)
+baidu_file="$tmpdir/baidu"
+google_file="$tmpdir/google"
+
+# 并发执行并将结果写入文件
+check_ping "www.baidu.com" > "$baidu_file" &
+check_ping "www.google.com" > "$google_file" &
+wait  # 等待所有后台任务完成
+
+# 从文件读取结果
+baidu_status=$(cat "$baidu_file")
+google_status=$(cat "$google_file")
+
+# 清理临时文件
+rm -rf "$tmpdir"
+
+# 判断逻辑
+if [[ $baidu_status == "success" && $google_status == "success" ]]; then
+    echo "已连接Internet，已使用代理"
+elif [[ $baidu_status == "success" ]]; then
+    echo "已连接Internet"
+elif [[ $google_status == "success" ]]; then
+    echo "未连接Internet，代理服务疑似异常"
+else
+    echo "未联网或时延过高"
+fi
